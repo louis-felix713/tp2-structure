@@ -88,6 +88,12 @@ private:
 	//Vous pouvez ajoutez des méthodes privées si vous sentez leur nécessité
 
     std::map<std::string, float>::iterator trouverMinimal(std::map<std::string, float> map) const;
+
+    std::vector<std::string> removeNonSolutionne(const std::basic_string<char> string, std::vector<std::string> vector) const;
+
+    Chemin
+    calculerChemin(const std::string &basicString, const std::string &basicString1, std::map<std::string, float> map1,
+                   std::map<std::string, std::string> map2, bool dureeCout) const;
 };
 
 }//Fin du namespace
