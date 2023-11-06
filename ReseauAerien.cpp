@@ -98,56 +98,116 @@ namespace TP2
 
     Chemin ReseauAerien::rechercheCheminDijkstra(const std::string &origine, const std::string &destination, bool dureeCout) const
     {
-        std::map<std::string, float> longueur;
-        std::map<std::string, std::string> predecesseur;
+        std::vector<Distance> longueur;
+        std::vector<Predecesseur> predecesseur;
         for (int i = 0; i < unReseau.getNombreSommets(); ++i) {
-            longueur.insert({unReseau.getNomSommet(i), 12345});
-            predecesseur.insert({unReseau.getNomSommet(i), ""});
+            if (unReseau.getNomSommet(i) == origine) {
+                longueur.push_back({unReseau.getNomSommet(i), 0});
+            }
+            else {
+                longueur.push_back({unReseau.getNomSommet(i), 12345});
+            }
+
+            predecesseur.push_back({unReseau.getNomSommet(i), ""});
         }
 
-        longueur[origine] = 0;
         std::vector<std::string> solutionnes;
         std::vector<std::string> nonSolutionne = unReseau.getSommets();
 
-        for (int i = 0; i < unReseau.getNombreSommets(); ++i) {
-            std::map<std::string, float>::iterator minimal = trouverMinimal(longueur);
-            nonSolutionne = removeNonSolutionne(minimal->first, nonSolutionne);\
-            solutionnes.push_back(minimal->first);
-            size_t sommet = unReseau.getNumeroSommet(minimal->first);
+        while(nonSolutionne.size()) {
+            Distance minimal = trouverMinimal(longueur, nonSolutionne);
+            nonSolutionne = removeNonSolutionne(minimal.nom, nonSolutionne);
+            solutionnes.push_back(minimal.nom);
+            size_t sommet = unReseau.getNumeroSommet(minimal.nom);
             std::vector<size_t> sommetsAdjacents = unReseau.listerSommetsAdjacents(sommet);
 
             for (size_t sommetAdjacent : sommetsAdjacents) {
                 Ponderations arc = unReseau.getPonderationsArc(sommet, sommetAdjacent);
                 float temp;
                 if (dureeCout) {
-                    temp = minimal->second + arc.duree;
+                    temp = minimal.distance + arc.duree;
                 }
                 else {
-                    temp = minimal->second + arc.cout;
+                    temp = minimal.distance + arc.cout;
                 }
-                if (temp < longueur[unReseau.getNomSommet(sommetAdjacent)]) {
-                    longueur[unReseau.getNomSommet(sommetAdjacent)] = temp;
-                    predecesseur[unReseau.getNomSommet(sommetAdjacent)] = minimal->first;
+                if (temp < longueur[sommetAdjacent].distance) {
+                    longueur[sommetAdjacent].distance = temp;
+                    predecesseur[sommetAdjacent].predecesseur = minimal.nom;
                 }
             }
         }
-        return calculerChemin(origine, destination, longueur, predecesseur, dureeCout);
+        Chemin resultat = calculerChemin(origine, destination, longueur, predecesseur);
+        if (dureeCout) {
+            resultat.dureeTotale = longueur[unReseau.getNumeroSommet(destination)].distance;
+        }
+        else {
+            resultat.coutTotal = longueur[unReseau.getNumeroSommet(destination)].distance;
+        }
+        return resultat;
     }
 
     Chemin ReseauAerien::rechercheCheminBellManFord(const std::string &origine, const std::string &destination, int dureeCoutNiveau) const
     {
         Chemin resultat;
-        return resultat;
-    }
-
-    std::map<std::string, float>::iterator ReseauAerien::trouverMinimal(std::map<std::string, float> map) const{
-        std::map<std::string, float>::iterator itMinimal = map.begin();
-        for (std::map<std::string, float>::iterator it = map.begin(); it != map.end(); ++it) {
-            if (it->second < itMinimal->second) {
-                itMinimal = it;
+        std::vector<Distance> longueur;
+        std::vector<Predecesseur> predecesseur;
+        std::vector<Trajet> arcs;
+        for (size_t i = 0; i < unReseau.getNombreSommets(); ++i) {
+            if (unReseau.getNomSommet(i) == origine) {
+                longueur.push_back({unReseau.getNomSommet(i), 0});
+            } else {
+                longueur.push_back({unReseau.getNomSommet(i), 12345});
+            }
+            predecesseur.push_back({unReseau.getNomSommet(i), ""});
+            for(size_t sommet : unReseau.listerSommetsAdjacents(i)) {
+                arcs.push_back({i, sommet});
             }
         }
-        return itMinimal;
+        for (int i = 0; i < unReseau.getNombreSommets(); ++i) {
+            for (Trajet arc: arcs) {
+                Ponderations cout = unReseau.getPonderationsArc(arc.depart, arc.arrivee);
+                float temp;
+                switch(dureeCoutNiveau) {
+                    case 1:
+                        temp = longueur[arc.depart].distance + cout.duree;
+                        break;
+                    case 2:
+                        temp = longueur[arc.depart].distance + cout.cout;
+                        break;
+                    case 3:
+                        temp = longueur[arc.depart].distance + cout.ns;
+                        break;
+                }
+                if (temp < longueur[arc.arrivee].distance) {
+                    longueur[arc.arrivee].distance = temp;
+                    predecesseur[arc.arrivee].predecesseur = unReseau.getNomSommet(arc.depart);
+                }
+            }
+
+        }
+        resultat = calculerChemin(origine, destination, longueur, predecesseur);
+        switch(dureeCoutNiveau) {
+            case 1:
+                resultat.dureeTotale = longueur[unReseau.getNumeroSommet(destination)].distance;
+                break;
+            case 2:
+                resultat.coutTotal = longueur[unReseau.getNumeroSommet(destination)].distance;
+                break;
+            case 3:
+                resultat.nsTotal = (int)longueur[unReseau.getNumeroSommet(destination)].distance;
+                break;
+        }
+        if (dureeCoutNiveau == 3) {
+            for (Trajet arc: arcs) {
+                Ponderations cout = unReseau.getPonderationsArc(arc.depart, arc.arrivee);
+                if (longueur[arc.arrivee].distance > longueur[arc.depart].distance + cout.ns) {
+                    resultat.reussi = false;
+                    return resultat;
+                }
+            }
+        }
+
+        return resultat;
     }
 
     std::vector<std::string> ReseauAerien::removeNonSolutionne(const std::basic_string<char> string, std::vector<std::string> vector) const {
@@ -161,34 +221,42 @@ namespace TP2
     }
 
     Chemin ReseauAerien::calculerChemin(const std::string &origine, const std::string &destination,
-                                        std::map<std::string, float> longueur,
-                                        std::map<std::string, std::string> predecesseur, bool dureeCout) const {
+                                        std::vector<Distance> longueur,
+                                        std::vector<Predecesseur> predecesseur) const {
         Chemin resultat;
         std::stack<std::string> cheminInverse;
-        if (predecesseur[destination] == "") {
+        if (predecesseur[unReseau.getNumeroSommet(destination)].predecesseur == "") {
             resultat.reussi = false;
             return resultat;
         }
-        std::string sommetPrecedent = predecesseur[destination];
+        std::string sommetPrecedent = predecesseur[unReseau.getNumeroSommet(destination)].predecesseur;
         cheminInverse.push(destination);
         while(sommetPrecedent != "") {
             cheminInverse.push(sommetPrecedent);
-            sommetPrecedent = predecesseur[sommetPrecedent];
+            sommetPrecedent = predecesseur[unReseau.getNumeroSommet(sommetPrecedent)].predecesseur;
         }
         while(cheminInverse.size()) {
             resultat.listeVilles.push_back(cheminInverse.top());
             cheminInverse.pop();
         }
         resultat.reussi = true;
-        if (dureeCout) {
-            resultat.dureeTotale = longueur[destination];
-        }
-        else {
-            resultat.coutTotal = longueur[destination];
-        }
-
         return resultat;
-
     }
+
+    Distance
+    ReseauAerien::trouverMinimal(std::vector<Distance> longueur, std::vector<std::string> nonSolutionne) const {
+        Distance minimal = {"", 12345.0};
+        for (Distance noeud : longueur) {
+            if(std::find(nonSolutionne.begin(), nonSolutionne.end(), noeud.nom) != nonSolutionne.end() && minimal.nom == "") {
+                minimal = noeud;
+                continue;
+            }
+            if (noeud.distance < minimal.distance && std::find(nonSolutionne.begin(), nonSolutionne.end(), noeud.nom) != nonSolutionne.end()) {
+                minimal = noeud;
+            }
+        }
+        return minimal;
+    }
+
 
 }//Fin du namespace

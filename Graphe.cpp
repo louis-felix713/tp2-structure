@@ -58,6 +58,7 @@ namespace TP2
 	}
 
 	void Graphe::enleverArc(size_t source, size_t destination) {
+        int nbArcsAvant = nbArcs;
         if (source >= nbSommets || destination >= nbSommets) {
             throw std::logic_error("enleverArc: source ou destination trop grande");
         }
@@ -68,7 +69,8 @@ namespace TP2
                 break;
             }
         }
-        throw std::logic_error("enleverArc: Arc inexistant");
+        if (nbArcsAvant == nbArcs)
+            throw std::logic_error("enleverArc: Arc inexistant");
 	}
 
 	bool Graphe::arcExiste(size_t source, size_t destination) const {

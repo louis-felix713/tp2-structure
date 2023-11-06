@@ -36,7 +36,6 @@ struct Ponderations
 	Ponderations(float d, float c, int n) : duree(d), cout(c), ns(n) {}
 };
 
-
 /**
  * \class Graphe
  * \brief Classe représentant un graphe

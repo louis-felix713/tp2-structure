@@ -37,6 +37,21 @@ struct Chemin
    bool reussi;			// Un booléen qui vaut true si chemin a été trouvé, false sinon
 };
 
+struct Trajet {
+    size_t depart;
+    size_t arrivee;
+};
+
+struct Distance {
+    std::string nom;
+    float distance;
+};
+
+struct Predecesseur {
+    std::string nom;
+    std::string predecesseur;
+};
+
 class ReseauAerien{
 
 public:
@@ -87,13 +102,13 @@ private:
 
 	//Vous pouvez ajoutez des méthodes privées si vous sentez leur nécessité
 
-    std::map<std::string, float>::iterator trouverMinimal(std::map<std::string, float> map) const;
+    Distance trouverMinimal(std::vector<Distance> longueur, std::vector<std::string> nonSolutionne) const;
 
     std::vector<std::string> removeNonSolutionne(const std::basic_string<char> string, std::vector<std::string> vector) const;
 
     Chemin
-    calculerChemin(const std::string &basicString, const std::string &basicString1, std::map<std::string, float> map1,
-                   std::map<std::string, std::string> map2, bool dureeCout) const;
+    calculerChemin(const std::string &basicString, const std::string &basicString1, std::vector<Distance> longueur,
+                   std::vector<Predecesseur>) const;
 };
 
 }//Fin du namespace
